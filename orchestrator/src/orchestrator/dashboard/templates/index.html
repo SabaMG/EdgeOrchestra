@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid">
+    <section>
+        <h2>Connected Devices</h2>
+        <div id="devices-container"
+             hx-get="/dashboard/partials/devices"
+             hx-trigger="load, every 5s"
+             hx-swap="innerHTML">
+            <p aria-busy="true">Loading devices...</p>
+        </div>
+    </section>
+
+    <section>
+        <h2>
+            Training Jobs
+            <button class="outline small-btn" onclick="document.getElementById('new-job-dialog').showModal()">
+                + New Job
+            </button>
+        </h2>
+        <div id="jobs-container"
+             hx-get="/dashboard/partials/jobs"
+             hx-trigger="load, every 3s"
+             hx-swap="innerHTML">
+            <p aria-busy="true">Loading jobs...</p>
+        </div>
+    </section>
+</div>
+
+<div id="job-detail-container"></div>
+
+<dialog id="new-job-dialog">
+    <article>
+        <header>
+            <button aria-label="Close" rel="prev" onclick="this.closest('dialog').close()"></button>
+            <h3>Create Training Job</h3>
+        </header>
+        <form hx-post="/dashboard/actions/jobs/create"
+              hx-target="#jobs-container"
+              hx-swap="innerHTML"
+              hx-on::after-request="this.closest('dialog').close()">
+            <label>
+                Number of Rounds
+                <input type="number" name="num_rounds" value="5" min="1" max="100" required>
+            </label>
+            <label>
+                Minimum Devices
+                <input type="number" name="min_devices" value="1" min="1" max="50" required>
+            </label>
+            <label>
+                Learning Rate
+                <input type="number" name="learning_rate" value="0.01" step="0.001" min="0.001" max="1" required>
+            </label>
+            <button type="submit">Start Training</button>
+        </form>
+    </article>
+</dialog>
+{% endblock %}

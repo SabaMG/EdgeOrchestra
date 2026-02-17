@@ -1,0 +1,22 @@
+{% if jobs %}
+<figure>
+<table>
+    <thead>
+        <tr>
+            <th>Status</th>
+            <th>Progress</th>
+            <th>LR</th>
+            <th>Created</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job in jobs %}
+        {% include "partials/job_row.html" %}
+        {% endfor %}
+    </tbody>
+</table>
+</figure>
+{% else %}
+<p><small>No training jobs.</small></p>
+{% endif %}

@@ -1,0 +1,67 @@
+.badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge-online, .badge-completed {
+    background: #2d8a4e;
+    color: #fff;
+}
+
+.badge-offline, .badge-failed, .badge-stopped {
+    background: #c0392b;
+    color: #fff;
+}
+
+.badge-running, .badge-training {
+    background: #2980b9;
+    color: #fff;
+}
+
+.badge-pending {
+    background: #7f8c8d;
+    color: #fff;
+}
+
+.badge-error {
+    background: #e67e22;
+    color: #fff;
+}
+
+progress {
+    width: 80px;
+    height: 8px;
+}
+
+.small-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    margin: 0 0.15rem;
+}
+
+h2 {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+h2 .small-btn {
+    font-size: 0.7rem;
+}
+
+table {
+    font-size: 0.9rem;
+}
+
+td, th {
+    padding: 0.5rem;
+}
+
+#job-detail-container article {
+    margin-top: 2rem;
+    padding: 1.5rem;
+}

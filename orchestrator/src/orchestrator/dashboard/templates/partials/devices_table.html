@@ -1,0 +1,38 @@
+{% if devices %}
+<figure>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Model</th>
+            <th>Chip</th>
+            <th>Status</th>
+            <th>Battery</th>
+            <th>Last Seen</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for d in devices %}
+        <tr>
+            <td>{{ d.name }}</td>
+            <td>{{ d.device_model }}</td>
+            <td>{{ d.chip or '-' }}</td>
+            <td><span class="badge badge-{{ d.status }}">{{ d.status }}</span></td>
+            <td>
+                {% if d.battery_level is not none %}
+                <progress value="{{ (d.battery_level * 100)|int }}" max="100"></progress>
+                <small>{{ (d.battery_level * 100)|int }}%</small>
+                {% else %}
+                -
+                {% endif %}
+            </td>
+            <td><small>{{ time_ago(d.last_seen_at) }}</small></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</figure>
+<p><small>{{ devices|length }} device{{ 's' if devices|length != 1 else '' }} connected</small></p>
+{% else %}
+<p><small>No devices connected.</small></p>
+{% endif %}

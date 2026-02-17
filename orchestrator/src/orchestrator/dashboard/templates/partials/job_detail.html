@@ -1,0 +1,54 @@
+<article hx-get="/dashboard/partials/job/{{ job.id }}"
+         hx-trigger="every 5s"
+         hx-swap="outerHTML">
+    <header>
+        <button aria-label="Close" rel="prev" onclick="this.closest('article').remove()"></button>
+        <h3>Job {{ job.id|string|truncate(8, True, '') }}</h3>
+    </header>
+
+    <div class="grid">
+        <div>
+            <p>
+                <strong>Status:</strong> <span class="badge badge-{{ job.status }}">{{ job.status }}</span><br>
+                <strong>Progress:</strong> {{ job.current_round }}/{{ job.num_rounds }} rounds<br>
+                <strong>Learning Rate:</strong> {{ job.learning_rate }}<br>
+                <strong>Min Devices:</strong> {{ job.min_devices }}<br>
+                <strong>Created:</strong> {{ time_ago(job.created_at) }}<br>
+                {% if job.completed_at %}
+                <strong>Completed:</strong> {{ time_ago(job.completed_at) }}
+                {% endif %}
+            </p>
+            <progress value="{{ job.current_round }}" max="{{ job.num_rounds }}"></progress>
+        </div>
+        <div>
+            <canvas id="chart-{{ job.id|string|replace('-', '') }}"
+                    data-chart-url="/dashboard/partials/job/{{ job.id }}/chart-data"
+                    width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    {% if rounds %}
+    <figure>
+    <table>
+        <thead>
+            <tr>
+                <th>Round</th>
+                <th>Participants</th>
+                <th>Avg Loss</th>
+                <th>Avg Accuracy</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rounds %}
+            <tr>
+                <td>{{ r.round }}</td>
+                <td>{{ r.participants }}</td>
+                <td>{{ r.avg_loss }}</td>
+                <td>{{ "%.1f"|format(r.avg_accuracy * 100) }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </figure>
+    {% endif %}
+</article>
