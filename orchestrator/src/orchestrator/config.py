@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     heartbeat_interval_seconds: int = 30
     heartbeat_timeout_multiplier: int = 3
 
+    # Training
+    training_round_timeout_seconds: int = 60
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "json"

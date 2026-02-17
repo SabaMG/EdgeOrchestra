@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI
 
-from orchestrator.api.routes import devices, health
+from orchestrator.api.routes import devices, health, training
 from orchestrator.db.engine import engine
 
 logger = structlog.get_logger()
@@ -26,4 +26,5 @@ def create_app() -> FastAPI:
     )
     app.include_router(health.router)
     app.include_router(devices.router)
+    app.include_router(training.router)
     return app

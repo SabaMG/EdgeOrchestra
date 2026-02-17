@@ -5,9 +5,11 @@ import grpc
 
 from orchestrator.generated import common_pb2, device_pb2, device_pb2_grpc
 from orchestrator.generated import heartbeat_pb2, heartbeat_pb2_grpc
+from orchestrator.generated import model_pb2, model_pb2_grpc
 
 from worker_sim.device_profile import DeviceProfile
 from worker_sim.metrics import MetricsSimulator
+from worker_sim.trainer import simulate_local_training
 
 logger = logging.getLogger(__name__)
 
@@ -150,11 +152,64 @@ class SimulatedWorker:
             logger.info(f"[{self.profile.name}] Interval updated to {new_interval}s")
             self.heartbeat_interval = new_interval
         elif cmd == heartbeat_pb2.HEARTBEAT_COMMAND_START_TRAINING:
-            logger.info(f"[{self.profile.name}] Training started")
+            job_id = response.parameters.get("job_id", "")
+            model_id = response.parameters.get("model_id", "")
+            round_num = response.parameters.get("round", "0")
+            logger.info(
+                f"[{self.profile.name}] Training round {round_num} started (job={job_id[:8]})"
+            )
             self.metrics_sim.start_training()
+            asyncio.create_task(self._run_training_round(job_id, model_id, round_num))
         elif cmd == heartbeat_pb2.HEARTBEAT_COMMAND_STOP_TRAINING:
             logger.info(f"[{self.profile.name}] Training stopped")
             self.metrics_sim.stop_training()
         elif cmd == heartbeat_pb2.HEARTBEAT_COMMAND_SHUTDOWN:
             logger.info(f"[{self.profile.name}] Shutdown command received")
             self.running = False
+
+    async def _run_training_round(self, job_id: str, model_id: str, round_num: str) -> None:
+        try:
+            # Download global model
+            stub = model_pb2_grpc.ModelServiceStub(self._channel)
+            model_bytes = b""
+            async for chunk in stub.DownloadModel(
+                model_pb2.DownloadModelRequest(
+                    model_id=model_id,
+                    device_id=common_pb2.DeviceId(value=self.device_id),
+                )
+            ):
+                if chunk.HasField("chunk"):
+                    model_bytes += chunk.chunk
+
+            logger.info(
+                f"[{self.profile.name}] Model downloaded ({len(model_bytes)} bytes)"
+            )
+
+            # Simulate local training
+            gradient_bytes, num_samples, metrics = await simulate_local_training(model_bytes)
+
+            # Submit gradients
+            response = await stub.SubmitGradients(
+                model_pb2.SubmitGradientsRequest(
+                    device_id=common_pb2.DeviceId(value=self.device_id),
+                    model_id=model_id,
+                    training_round=round_num,
+                    gradients=gradient_bytes,
+                    num_samples=num_samples,
+                    metrics={k: v for k, v in metrics.items()},
+                )
+            )
+
+            self.metrics_sim.stop_training()
+            logger.info(
+                f"[{self.profile.name}] Round {round_num} done - "
+                f"loss={metrics['loss']:.4f} acc={metrics['accuracy']:.4f} "
+                f"accepted={response.accepted}"
+            )
+
+        except grpc.aio.AioRpcError as e:
+            logger.error(f"[{self.profile.name}] Training round failed: {e.details()}")
+            self.metrics_sim.stop_training()
+        except Exception as e:
+            logger.error(f"[{self.profile.name}] Training error: {e}")
+            self.metrics_sim.stop_training()

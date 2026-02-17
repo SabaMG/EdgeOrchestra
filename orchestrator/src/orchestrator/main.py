@@ -58,7 +58,12 @@ async def main() -> None:
 
     device_service = DeviceRegistryServicer()
     heartbeat_service = HeartbeatServiceServicer(heartbeat_monitor)
-    model_service = ModelServiceServicer()
+    model_service = ModelServiceServicer(redis)
+
+    # Training coordinator
+    from orchestrator.services.training_coordinator import TrainingCoordinator
+
+    training_coordinator = TrainingCoordinator(redis, heartbeat_monitor)
 
     grpc_server = await create_grpc_server(
         device_service,
@@ -81,6 +86,11 @@ async def main() -> None:
     from orchestrator.api.app import create_app
 
     app = create_app()
+
+    # Share Redis with training routes
+    from orchestrator.api.routes.training import set_redis
+
+    set_redis(redis)
     uvicorn_config = uvicorn.Config(
         app,
         host=settings.api_host,
@@ -109,6 +119,7 @@ async def main() -> None:
     tasks = [
         asyncio.create_task(uvicorn_server.serve(), name="uvicorn"),
         asyncio.create_task(heartbeat_monitor.run_stale_device_checker(), name="heartbeat"),
+        asyncio.create_task(training_coordinator.run(), name="training_coordinator"),
         asyncio.create_task(shutdown_event.wait(), name="shutdown"),
     ]
 

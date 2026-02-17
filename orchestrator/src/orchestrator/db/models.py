@@ -36,3 +36,24 @@ class Device(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
     notes: Mapped[str | None] = mapped_column(Text)
+
+
+class TrainingJob(Base):
+    __tablename__ = "training_jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    num_rounds: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    current_round: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    min_devices: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    learning_rate: Mapped[float] = mapped_column(Float, nullable=False, default=0.01)
+    round_metrics: Mapped[dict | None] = mapped_column(JSON)
+    config: Mapped[dict | None] = mapped_column(JSON)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
