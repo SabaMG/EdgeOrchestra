@@ -13,7 +13,7 @@ function renderChart(canvas) {
                 chartInstances[id].data.labels = data.labels;
                 chartInstances[id].data.datasets[0].data = data.loss;
                 chartInstances[id].data.datasets[1].data = data.accuracy;
-                chartInstances[id].update();
+                chartInstances[id].update('none');
                 return;
             }
 
@@ -27,6 +27,7 @@ function renderChart(canvas) {
                             data: data.loss,
                             borderColor: '#e74c3c',
                             backgroundColor: 'rgba(231,76,60,0.1)',
+                            fill: true,
                             yAxisID: 'y',
                             tension: 0.3,
                         },
@@ -35,6 +36,7 @@ function renderChart(canvas) {
                             data: data.accuracy,
                             borderColor: '#2ecc71',
                             backgroundColor: 'rgba(46,204,113,0.1)',
+                            fill: true,
                             yAxisID: 'y1',
                             tension: 0.3,
                         },
@@ -57,5 +59,9 @@ function initCharts() {
     document.querySelectorAll('canvas[data-chart-url]').forEach(renderChart);
 }
 
+// Poll chart data every 3s without touching the DOM
+setInterval(initCharts, 3000);
+
+// Init on page load and after HTMX swaps new job details in
 document.addEventListener('DOMContentLoaded', initCharts);
-document.body.addEventListener('htmx:afterSwap', () => setTimeout(initCharts, 100));
+document.body.addEventListener('htmx:afterSettle', () => setTimeout(initCharts, 200));

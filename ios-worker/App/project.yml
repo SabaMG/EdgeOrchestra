@@ -1,0 +1,35 @@
+name: EdgeOrchestraApp
+options:
+  bundleIdPrefix: com.edgeorchestra
+  deploymentTarget:
+    iOS: "18.0"
+  xcodeVersion: "16.0"
+
+packages:
+  EdgeOrchestraWorker:
+    path: ../
+
+targets:
+  EdgeOrchestraApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: ../Sources/EdgeOrchestraApp
+    dependencies:
+      - package: EdgeOrchestraWorker
+        product: EdgeOrchestraWorker
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.edgeorchestra.worker
+        INFOPLIST_GENERATION_MODE: GeneratedFile
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: "YES"
+        SWIFT_VERSION: "6.0"
+    info:
+      path: Info.plist
+      properties:
+        NSLocalNetworkUsageDescription: "EdgeOrchestra needs local network access to discover the orchestrator via Bonjour."
+        NSBonjourServices:
+          - "_edgeorchestra._tcp"
+        UILaunchScreen: {}

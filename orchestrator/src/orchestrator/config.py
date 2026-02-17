@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     mdns_service_name: str = "EdgeOrchestra"
 
     # Heartbeat
-    heartbeat_interval_seconds: int = 30
+    heartbeat_interval_seconds: int = 5
     heartbeat_timeout_multiplier: int = 3
 
     # Training

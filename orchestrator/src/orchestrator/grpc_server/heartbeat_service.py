@@ -20,14 +20,32 @@ class HeartbeatServiceServicer:
         async for request in request_iterator:
             device_id = uuid.UUID(request.device_id.value)
 
-            metrics = {
-                "cpu_usage": request.metrics.cpu_usage,
-                "memory_usage": request.metrics.memory_usage,
-                "thermal_pressure": request.metrics.thermal_pressure,
-            } if request.metrics else {}
+            metrics = {}
+            battery_level = None
+            battery_state = None
+            if request.HasField("metrics"):
+                metrics = {
+                    "cpu_usage": request.metrics.cpu_usage,
+                    "memory_usage": request.metrics.memory_usage,
+                    "thermal_pressure": request.metrics.thermal_pressure,
+                }
+                if request.metrics.HasField("battery"):
+                    battery_level = request.metrics.battery.level
+                    battery_state_map = {
+                        0: None,
+                        1: "charging",
+                        2: "discharging",
+                        3: "full",
+                        4: "not_charging",
+                    }
+                    battery_state = battery_state_map.get(request.metrics.battery.state)
 
             async with async_session() as session:
-                await self.monitor.process_heartbeat(session, device_id, metrics)
+                await self.monitor.process_heartbeat(
+                    session, device_id, metrics,
+                    battery_level=battery_level,
+                    battery_state=battery_state,
+                )
 
             command = await self.monitor.get_pending_command(str(device_id))
 

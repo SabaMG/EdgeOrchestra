@@ -59,3 +59,10 @@ htmlcov/
 
 # mypy
 .mypy_cache/
+
+# Swift
+.build/
+.swiftpm/
+*.xcuserdata/
+xcuserdata/
+DerivedData/

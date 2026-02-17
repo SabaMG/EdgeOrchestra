@@ -1,0 +1,24 @@
+{% if rounds %}
+<figure>
+<table>
+    <thead>
+        <tr>
+            <th>Round</th>
+            <th>Participants</th>
+            <th>Avg Loss</th>
+            <th>Avg Accuracy</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in rounds %}
+        <tr>
+            <td>{{ r.round }}</td>
+            <td>{{ r.participants }}</td>
+            <td>{{ "%.4f"|format(r.avg_loss) }}</td>
+            <td>{{ "%.1f"|format(r.avg_accuracy * 100) }}%</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</figure>
+{% endif %}

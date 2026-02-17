@@ -51,7 +51,7 @@ async def health_partial(request: Request):
 @router.get("/partials/devices", response_class=HTMLResponse)
 async def devices_partial(request: Request, session: AsyncSession = Depends(get_session)):
     repo = DeviceRepository(session)
-    devices = await repo.list_all()
+    devices = await repo.list_all(status="online")
     return templates.TemplateResponse(
         "partials/devices_table.html", {"request": request, "devices": devices}
     )
@@ -81,6 +81,38 @@ async def job_detail_partial(request: Request, job_id: str, session: AsyncSessio
 
     return templates.TemplateResponse(
         "partials/job_detail.html", {"request": request, "job": job, "rounds": rounds}
+    )
+
+
+@router.get("/partials/job/{job_id}/info", response_class=HTMLResponse)
+async def job_info_partial(request: Request, job_id: str, session: AsyncSession = Depends(get_session)):
+    import uuid
+
+    repo = TrainingJobRepository(session)
+    job = await repo.get(uuid.UUID(job_id))
+    if not job:
+        return HTMLResponse("<p>Job not found.</p>", status_code=404)
+
+    return templates.TemplateResponse(
+        "partials/job_info.html", {"request": request, "job": job}
+    )
+
+
+@router.get("/partials/job/{job_id}/rounds", response_class=HTMLResponse)
+async def job_rounds_partial(request: Request, job_id: str, session: AsyncSession = Depends(get_session)):
+    import uuid
+
+    repo = TrainingJobRepository(session)
+    job = await repo.get(uuid.UUID(job_id))
+    if not job:
+        return HTMLResponse("", status_code=404)
+
+    rounds = []
+    if job.round_metrics and "rounds" in job.round_metrics:
+        rounds = job.round_metrics["rounds"]
+
+    return templates.TemplateResponse(
+        "partials/job_rounds.html", {"request": request, "rounds": rounds}
     )
 
 

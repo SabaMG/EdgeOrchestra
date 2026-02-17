@@ -1,0 +1,11 @@
+<p>
+    <strong>Status:</strong> <span class="badge badge-{{ job.status }}">{{ job.status }}</span><br>
+    <strong>Progress:</strong> {{ job.current_round }}/{{ job.num_rounds }} rounds<br>
+    <strong>Learning Rate:</strong> {{ job.learning_rate }}<br>
+    <strong>Min Devices:</strong> {{ job.min_devices }}<br>
+    <strong>Created:</strong> {{ time_ago(job.created_at) }}<br>
+    {% if job.completed_at %}
+    <strong>Completed:</strong> {{ time_ago(job.completed_at) }}
+    {% endif %}
+</p>
+<progress value="{{ job.current_round }}" max="{{ job.num_rounds }}"></progress>

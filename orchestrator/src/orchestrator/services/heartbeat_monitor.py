@@ -22,13 +22,19 @@ class HeartbeatMonitor:
         )
 
     async def process_heartbeat(
-        self, session: AsyncSession, device_id: uuid.UUID, metrics: dict
+        self, session: AsyncSession, device_id: uuid.UUID, metrics: dict,
+        battery_level: float | None = None, battery_state: str | None = None,
     ) -> None:
         key = f"heartbeat:{device_id}"
         await self.redis.set(key, datetime.now(timezone.utc).isoformat(), ex=self.timeout_seconds)
 
         repo = DeviceRepository(session)
-        await repo.update(device_id, status="online")
+        update_kwargs: dict = {"status": "online"}
+        if battery_level is not None:
+            update_kwargs["battery_level"] = battery_level
+        if battery_state is not None:
+            update_kwargs["battery_state"] = battery_state
+        await repo.update(device_id, **update_kwargs)
         if metrics:
             await repo.update_metrics(device_id, metrics)
 
