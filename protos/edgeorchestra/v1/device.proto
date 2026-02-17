@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package edgeorchestra.v1;
+
+option java_multiple_files = true;
+
+import "edgeorchestra/v1/common.proto";
+
+service DeviceRegistry {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Unregister(UnregisterRequest) returns (UnregisterResponse);
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse);
+  rpc GetDevice(GetDeviceRequest) returns (GetDeviceResponse);
+}
+
+message RegisterRequest {
+  string name = 1;
+  string device_model = 2;
+  string os_version = 3;
+  DeviceCapabilities capabilities = 4;
+  DeviceMetrics initial_metrics = 5;
+}
+
+message RegisterResponse {
+  DeviceId device_id = 1;
+  DeviceInfo device = 2;
+}
+
+message UnregisterRequest {
+  DeviceId device_id = 1;
+}
+
+message UnregisterResponse {}
+
+message ListDevicesRequest {
+  DeviceStatus status_filter = 1;  // 0 = no filter
+}
+
+message ListDevicesResponse {
+  repeated DeviceInfo devices = 1;
+}
+
+message GetDeviceRequest {
+  DeviceId device_id = 1;
+}
+
+message GetDeviceResponse {
+  DeviceInfo device = 1;
+}

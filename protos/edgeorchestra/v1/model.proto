@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package edgeorchestra.v1;
+
+option java_multiple_files = true;
+
+import "edgeorchestra/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+service ModelService {
+  rpc UploadModel(stream UploadModelRequest) returns (UploadModelResponse);
+  rpc DownloadModel(DownloadModelRequest) returns (stream DownloadModelChunk);
+  rpc SubmitGradients(SubmitGradientsRequest) returns (SubmitGradientsResponse);
+}
+
+message ModelMetadata {
+  string model_id = 1;
+  string name = 2;
+  string version = 3;
+  string framework = 4;     // "coreml", "mlx", "onnx"
+  uint64 size_bytes = 5;
+  map<string, string> hyperparameters = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message UploadModelRequest {
+  oneof data {
+    ModelMetadata metadata = 1;
+    bytes chunk = 2;
+  }
+}
+
+message UploadModelResponse {
+  string model_id = 1;
+  ModelMetadata metadata = 2;
+}
+
+message DownloadModelRequest {
+  string model_id = 1;
+  DeviceId device_id = 2;
+}
+
+message DownloadModelChunk {
+  oneof data {
+    ModelMetadata metadata = 1;
+    bytes chunk = 2;
+  }
+}
+
+message SubmitGradientsRequest {
+  DeviceId device_id = 1;
+  string model_id = 2;
+  string training_round = 3;
+  bytes gradients = 4;
+  uint32 num_samples = 5;
+  map<string, float> metrics = 6;  // loss, accuracy, etc.
+}
+
+message SubmitGradientsResponse {
+  bool accepted = 1;
+  string next_round = 2;
+}

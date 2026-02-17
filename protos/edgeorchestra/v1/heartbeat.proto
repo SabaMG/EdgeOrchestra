@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package edgeorchestra.v1;
+
+option java_multiple_files = true;
+
+import "edgeorchestra/v1/common.proto";
+
+service HeartbeatService {
+  rpc Heartbeat(stream HeartbeatRequest) returns (stream HeartbeatResponse);
+}
+
+message HeartbeatRequest {
+  DeviceId device_id = 1;
+  DeviceMetrics metrics = 2;
+  uint64 sequence = 3;
+}
+
+enum HeartbeatCommand {
+  HEARTBEAT_COMMAND_UNSPECIFIED = 0;
+  HEARTBEAT_COMMAND_ACK = 1;
+  HEARTBEAT_COMMAND_UPDATE_INTERVAL = 2;
+  HEARTBEAT_COMMAND_START_TRAINING = 3;
+  HEARTBEAT_COMMAND_STOP_TRAINING = 4;
+  HEARTBEAT_COMMAND_SHUTDOWN = 5;
+}
+
+message HeartbeatResponse {
+  HeartbeatCommand command = 1;
+  uint64 ack_sequence = 2;
+  map<string, string> parameters = 3;
+}

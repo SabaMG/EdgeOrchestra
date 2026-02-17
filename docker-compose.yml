@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: edgeorchestra
+      POSTGRES_PASSWORD: edgeorchestra
+      POSTGRES_DB: edgeorchestra
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edgeorchestra"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: orchestrator/Dockerfile
+    ports:
+      - "8000:8000"
+      - "50051:50051"
+    environment:
+      EO_DATABASE_URL: postgresql+asyncpg://edgeorchestra:edgeorchestra@postgres:5432/edgeorchestra
+      EO_REDIS_URL: redis://redis:6379/0
+      EO_API_HOST: 0.0.0.0
+      EO_GRPC_HOST: 0.0.0.0
+      EO_MDNS_ENABLED: "false"
+      EO_LOG_LEVEL: INFO
+    volumes:
+      - ./orchestrator/src:/app/orchestrator/src
+      - model-storage:/app/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
+  model-storage:

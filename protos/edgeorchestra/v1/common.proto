@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package edgeorchestra.v1;
+
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+message DeviceId {
+  string value = 1;
+}
+
+enum DeviceStatus {
+  DEVICE_STATUS_UNSPECIFIED = 0;
+  DEVICE_STATUS_ONLINE = 1;
+  DEVICE_STATUS_OFFLINE = 2;
+  DEVICE_STATUS_TRAINING = 3;
+  DEVICE_STATUS_ERROR = 4;
+}
+
+enum BatteryState {
+  BATTERY_STATE_UNSPECIFIED = 0;
+  BATTERY_STATE_CHARGING = 1;
+  BATTERY_STATE_DISCHARGING = 2;
+  BATTERY_STATE_FULL = 3;
+  BATTERY_STATE_NOT_CHARGING = 4;
+}
+
+message BatteryInfo {
+  float level = 1;           // 0.0 to 1.0
+  BatteryState state = 2;
+  bool is_low_power_mode = 3;
+}
+
+message DeviceCapabilities {
+  string chip = 1;            // e.g. "Apple M1", "A15 Bionic"
+  uint64 memory_bytes = 2;
+  uint32 cpu_cores = 3;
+  uint32 gpu_cores = 4;
+  uint32 neural_engine_cores = 5;
+  repeated string supported_frameworks = 6;  // e.g. ["coreml", "mlx"]
+}
+
+message DeviceMetrics {
+  float cpu_usage = 1;         // 0.0 to 1.0
+  float memory_usage = 2;      // 0.0 to 1.0
+  float thermal_pressure = 3;  // 0.0 to 1.0
+  BatteryInfo battery = 4;
+  google.protobuf.Timestamp collected_at = 5;
+}
+
+message DeviceInfo {
+  DeviceId id = 1;
+  string name = 2;
+  string device_model = 3;     // e.g. "iPhone 14 Pro", "MacBook Pro"
+  string os_version = 4;
+  DeviceCapabilities capabilities = 5;
+  DeviceStatus status = 6;
+  DeviceMetrics latest_metrics = 7;
+  google.protobuf.Timestamp registered_at = 8;
+  google.protobuf.Timestamp last_seen_at = 9;
+}

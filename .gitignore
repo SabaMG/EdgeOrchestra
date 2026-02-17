@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# uv
+.python-version
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# macOS
+.DS_Store
+
+# Docker
+docker-compose.override.yml
+
+# Protobuf generated
+orchestrator/src/orchestrator/generated/*_pb2.py
+orchestrator/src/orchestrator/generated/*_pb2_grpc.py
+orchestrator/src/orchestrator/generated/*_pb2.pyi
+orchestrator/src/orchestrator/generated/*_pb2_grpc.pyi
+!orchestrator/src/orchestrator/generated/__init__.py
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Model artifacts
+*.onnx
+*.mlmodel
+*.pt
+*.pth
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# mypy
+.mypy_cache/
