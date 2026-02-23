@@ -1,6 +1,7 @@
 import uuid
 
 import structlog
+from redis.asyncio import Redis
 
 from orchestrator.db.engine import async_session
 from orchestrator.services.heartbeat_monitor import HeartbeatMonitor
@@ -11,8 +12,9 @@ logger = structlog.get_logger()
 class HeartbeatServiceServicer:
     """Bidirectional streaming heartbeat service."""
 
-    def __init__(self, heartbeat_monitor: HeartbeatMonitor) -> None:
+    def __init__(self, heartbeat_monitor: HeartbeatMonitor, redis: Redis) -> None:
         self.monitor = heartbeat_monitor
+        self.redis = redis
 
     async def Heartbeat(self, request_iterator, context):
         from orchestrator.generated import heartbeat_pb2
@@ -23,6 +25,7 @@ class HeartbeatServiceServicer:
             metrics = {}
             battery_level = None
             battery_state = None
+            is_low_power_mode = None
             if request.HasField("metrics"):
                 metrics = {
                     "cpu_usage": request.metrics.cpu_usage,
@@ -39,15 +42,31 @@ class HeartbeatServiceServicer:
                         4: "not_charging",
                     }
                     battery_state = battery_state_map.get(request.metrics.battery.state)
+                    is_low_power_mode = request.metrics.battery.is_low_power_mode
 
             async with async_session() as session:
                 await self.monitor.process_heartbeat(
                     session, device_id, metrics,
                     battery_level=battery_level,
                     battery_state=battery_state,
+                    is_low_power_mode=is_low_power_mode,
                 )
 
             command = await self.monitor.get_pending_command(str(device_id))
+
+            # Build metadata with latest training metrics
+            metadata = {}
+            try:
+                latest = await self.redis.get("training:latest_metrics")
+                if latest:
+                    import json
+                    metrics_data = json.loads(latest)
+                    if "server_accuracy" in metrics_data:
+                        metadata["server_accuracy"] = str(metrics_data["server_accuracy"])
+                    if "server_loss" in metrics_data:
+                        metadata["server_loss"] = str(metrics_data["server_loss"])
+            except Exception:
+                pass
 
             if command:
                 cmd_map = {
@@ -63,9 +82,11 @@ class HeartbeatServiceServicer:
                     ),
                     ack_sequence=request.sequence,
                     parameters=command.get("parameters", {}),
+                    metadata=metadata,
                 )
             else:
                 yield heartbeat_pb2.HeartbeatResponse(
                     command=heartbeat_pb2.HEARTBEAT_COMMAND_ACK,
                     ack_sequence=request.sequence,
+                    metadata=metadata,
                 )

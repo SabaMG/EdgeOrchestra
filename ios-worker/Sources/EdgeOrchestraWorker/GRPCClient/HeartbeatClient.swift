@@ -6,6 +6,7 @@ import EdgeOrchestraProtos
 public struct HeartbeatCommand: Sendable {
     public let type: String
     public let parameters: [String: String]
+    public let metadata: [String: String]
 }
 
 public struct HeartbeatClientWrapper: Sendable {
@@ -21,7 +22,7 @@ public struct HeartbeatClientWrapper: Sendable {
     }
 
     public func run(
-        interval: TimeInterval = 5.0,
+        interval: TimeInterval = 1.0,
         onMetrics: @escaping @Sendable (Edgeorchestra_V1_DeviceMetrics) -> Void,
         onCommand: @escaping @Sendable (HeartbeatCommand) -> Void
     ) async throws {
@@ -54,17 +55,24 @@ public struct HeartbeatClientWrapper: Sendable {
     }
 
     private func mapCommand(_ response: Edgeorchestra_V1_HeartbeatResponse) -> HeartbeatCommand? {
+        let meta = Dictionary(uniqueKeysWithValues: response.metadata.map { ($0.key, $0.value) })
         switch response.command {
-        case .unspecified, .ack, .UNRECOGNIZED:
+        case .unspecified, .UNRECOGNIZED:
+            return nil
+        case .ack:
+            // Return ACK with metadata so caller can update server metrics
+            if !meta.isEmpty {
+                return HeartbeatCommand(type: "ack", parameters: [:], metadata: meta)
+            }
             return nil
         case .updateInterval:
-            return HeartbeatCommand(type: "update_interval", parameters: Dictionary(uniqueKeysWithValues: response.parameters.map { ($0.key, $0.value) }))
+            return HeartbeatCommand(type: "update_interval", parameters: Dictionary(uniqueKeysWithValues: response.parameters.map { ($0.key, $0.value) }), metadata: meta)
         case .startTraining:
-            return HeartbeatCommand(type: "start_training", parameters: Dictionary(uniqueKeysWithValues: response.parameters.map { ($0.key, $0.value) }))
+            return HeartbeatCommand(type: "start_training", parameters: Dictionary(uniqueKeysWithValues: response.parameters.map { ($0.key, $0.value) }), metadata: meta)
         case .stopTraining:
-            return HeartbeatCommand(type: "stop_training", parameters: [:])
+            return HeartbeatCommand(type: "stop_training", parameters: [:], metadata: meta)
         case .shutdown:
-            return HeartbeatCommand(type: "shutdown", parameters: [:])
+            return HeartbeatCommand(type: "shutdown", parameters: [:], metadata: meta)
         }
     }
 }

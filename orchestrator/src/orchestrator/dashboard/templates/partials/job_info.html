@@ -1,5 +1,11 @@
 <p>
     <strong>Status:</strong> <span class="badge badge-{{ job.status }}">{{ job.status }}</span><br>
+    {% if job.model_name %}
+    <strong>Model:</strong> {{ job.model_name }}<br>
+    {% endif %}
+    {% if job.architecture %}
+    <strong>Architecture:</strong> {{ job.architecture }}<br>
+    {% endif %}
     <strong>Progress:</strong> {{ job.current_round }}/{{ job.num_rounds }} rounds<br>
     <strong>Learning Rate:</strong> {{ job.learning_rate }}<br>
     <strong>Min Devices:</strong> {{ job.min_devices }}<br>

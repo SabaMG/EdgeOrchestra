@@ -3,6 +3,9 @@ import Foundation
 #if canImport(UIKit)
 import UIKit
 #endif
+#if os(macOS)
+import IOKit.ps
+#endif
 import EdgeOrchestraProtos
 import SwiftProtobuf
 
@@ -102,11 +105,46 @@ public final class MetricsCollector: @unchecked Sendable {
         default: info.state = .notCharging
         }
         info.isLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
-        #else
-        info.level = 1.0
-        info.state = .full
+        #elseif os(macOS)
+        let (level, state) = Self.macOSBatteryInfo()
+        info.level = level
+        info.state = state
         info.isLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
         #endif
         return info
     }
+
+    #if os(macOS)
+    private static func macOSBatteryInfo() -> (Float, Edgeorchestra_V1_BatteryState) {
+        let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let sources = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue() as [CFTypeRef]
+
+        guard let source = sources.first,
+              let desc = IOPSGetPowerSourceDescription(snapshot, source).takeUnretainedValue() as? [String: Any]
+        else {
+            // No battery (Mac mini, Mac Pro, etc.) — report as plugged in, full
+            return (1.0, .unspecified)
+        }
+
+        let capacity = desc[kIOPSCurrentCapacityKey as String] as? Int ?? 100
+        let maxCapacity = desc[kIOPSMaxCapacityKey as String] as? Int ?? 100
+        let level = Float(capacity) / Float(max(maxCapacity, 1))
+
+        let isCharging = desc[kIOPSIsChargingKey as String] as? Bool ?? false
+        let isPluggedIn = desc[kIOPSPowerSourceStateKey as String] as? String == kIOPSACPowerValue as String
+
+        let state: Edgeorchestra_V1_BatteryState
+        if level >= 0.99 && isPluggedIn {
+            state = .full
+        } else if isCharging {
+            state = .charging
+        } else if isPluggedIn {
+            state = .notCharging
+        } else {
+            state = .discharging
+        }
+
+        return (level, state)
+    }
+    #endif
 }

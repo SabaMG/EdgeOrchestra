@@ -42,6 +42,7 @@ class MDNSDiscovery:
                 "api_port": str(settings.api_port),
                 "grpc_port": str(settings.grpc_port),
                 "version": "0.1.0",
+                "tls": "1" if settings.tls_enabled else "0",
             },
             server=f"{settings.mdns_service_name}.local.",
         )

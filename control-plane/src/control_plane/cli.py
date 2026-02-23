@@ -9,9 +9,48 @@ from control_plane.api_client import APIClient
 app = typer.Typer(name="eo", help="EdgeOrchestra CLI")
 console = Console()
 
+# Global state set by the callback
+_global_api_key: str | None = None
+_global_tls: bool = False
+_global_ca_cert: str | None = None
+_global_client_cert: str | None = None
+_global_client_key: str | None = None
+
+
+@app.callback()
+def main(
+    api_key: Optional[str] = typer.Option(None, "--api-key", envvar="EO_API_KEY", help="API key"),
+    tls: bool = typer.Option(False, "--tls", envvar="EO_TLS_ENABLED", help="Enable TLS"),
+    ca_cert: Optional[str] = typer.Option(None, "--ca-cert", help="CA certificate path"),
+    client_cert: Optional[str] = typer.Option(
+        None, "--client-cert", help="Client certificate path"
+    ),
+    client_key: Optional[str] = typer.Option(None, "--client-key", help="Client key path"),
+):
+    """EdgeOrchestra CLI — manage your federated learning cluster."""
+    global _global_api_key, _global_tls, _global_ca_cert, _global_client_cert, _global_client_key
+    _global_api_key = api_key
+    _global_tls = tls
+    _global_ca_cert = ca_cert
+    _global_client_cert = client_cert
+    _global_client_key = client_key
+
 
 def _get_api(host: str = "localhost", port: int = 8000) -> APIClient:
-    return APIClient(base_url=f"http://{host}:{port}")
+    return APIClient(base_url=f"http://{host}:{port}", api_key=_global_api_key)
+
+
+def _get_grpc(host: str = "localhost", port: int = 50051):
+    from control_plane.client import GRPCClient
+
+    return GRPCClient(
+        target=f"{host}:{port}",
+        tls=_global_tls,
+        ca_cert=_global_ca_cert,
+        client_cert=_global_client_cert,
+        client_key=_global_client_key,
+        api_key=_global_api_key,
+    )
 
 
 @app.command()
@@ -123,7 +162,7 @@ def device(
 @app.command()
 def discover(timeout: int = typer.Option(5, help="Discovery timeout in seconds")):
     """Discover EdgeOrchestra services via mDNS."""
-    from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
+    from zeroconf import ServiceBrowser, Zeroconf
     import time
 
     console.print(f"[dim]Scanning for EdgeOrchestra services ({timeout}s)...[/dim]")
@@ -170,15 +209,18 @@ def discover(timeout: int = typer.Option(5, help="Discovery timeout in seconds")
     table.add_column("gRPC Port")
     table.add_column("API Port")
     table.add_column("Version")
+    table.add_column("TLS")
 
     for svc in found:
         props = svc["properties"]
+        tls_status = "yes" if props.get("tls") == "1" else "no"
         table.add_row(
             svc["name"],
             ", ".join(svc["addresses"]),
             str(svc["port"]),
             props.get("api_port", "-"),
             props.get("version", "-"),
+            tls_status,
         )
     console.print(table)
 

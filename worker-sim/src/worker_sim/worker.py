@@ -19,7 +19,7 @@ class SimulatedWorker:
         self,
         target: str,
         profile: DeviceProfile,
-        heartbeat_interval: float = 5.0,
+        heartbeat_interval: float = 1.0,
     ) -> None:
         self.target = target
         self.profile = profile

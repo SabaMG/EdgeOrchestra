@@ -1,24 +1,14 @@
-<article id="job-detail-{{ job.id|string|replace('-', '') }}">
-    <header>
-        <button aria-label="Close" rel="prev" onclick="this.closest('article').remove()"></button>
-        <h3>Job {{ job.id|string|truncate(8, True, '') }}</h3>
-    </header>
+<div class="overlay-header">
+    <h3>Job {{ job.id|string|truncate(8, True, '') }}</h3>
+    <button class="overlay-close" onclick="closeJobDetail()" aria-label="Close">&times;</button>
+</div>
 
+<div class="overlay-body">
     <div class="grid">
         <div hx-get="/dashboard/partials/job/{{ job.id }}/info"
              hx-trigger="every 3s"
              hx-swap="innerHTML">
-            <p>
-                <strong>Status:</strong> <span class="badge badge-{{ job.status }}">{{ job.status }}</span><br>
-                <strong>Progress:</strong> {{ job.current_round }}/{{ job.num_rounds }} rounds<br>
-                <strong>Learning Rate:</strong> {{ job.learning_rate }}<br>
-                <strong>Min Devices:</strong> {{ job.min_devices }}<br>
-                <strong>Created:</strong> {{ time_ago(job.created_at) }}<br>
-                {% if job.completed_at %}
-                <strong>Completed:</strong> {{ time_ago(job.completed_at) }}
-                {% endif %}
-            </p>
-            <progress value="{{ job.current_round }}" max="{{ job.num_rounds }}"></progress>
+            {% include "partials/job_info.html" %}
         </div>
         <div>
             <canvas id="chart-{{ job.id|string|replace('-', '') }}"
@@ -31,28 +21,7 @@
          hx-trigger="every 3s"
          hx-swap="innerHTML">
         {% if rounds %}
-        <figure>
-        <table>
-            <thead>
-                <tr>
-                    <th>Round</th>
-                    <th>Participants</th>
-                    <th>Avg Loss</th>
-                    <th>Avg Accuracy</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for r in rounds %}
-                <tr>
-                    <td>{{ r.round }}</td>
-                    <td>{{ r.participants }}</td>
-                    <td>{{ "%.4f"|format(r.avg_loss) }}</td>
-                    <td>{{ "%.1f"|format(r.avg_accuracy * 100) }}%</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </figure>
+        {% include "partials/job_rounds.html" %}
         {% endif %}
     </div>
-</article>
+</div>

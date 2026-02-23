@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from orchestrator.config import settings
 from orchestrator.db.engine import async_session
 from orchestrator.db.repositories import DeviceRepository
+from orchestrator.observability.metrics import HEARTBEATS_TOTAL
 
 logger = structlog.get_logger()
 
@@ -24,17 +25,25 @@ class HeartbeatMonitor:
     async def process_heartbeat(
         self, session: AsyncSession, device_id: uuid.UUID, metrics: dict,
         battery_level: float | None = None, battery_state: str | None = None,
+        is_low_power_mode: bool | None = None,
     ) -> None:
+        HEARTBEATS_TOTAL.inc()
         key = f"heartbeat:{device_id}"
         await self.redis.set(key, datetime.now(timezone.utc).isoformat(), ex=self.timeout_seconds)
 
         repo = DeviceRepository(session)
-        update_kwargs: dict = {"status": "online"}
+        current = await repo.get(device_id)
+        update_kwargs: dict = {}
+        if not current or current.status != "training":
+            update_kwargs["status"] = "online"
         if battery_level is not None:
             update_kwargs["battery_level"] = battery_level
         if battery_state is not None:
             update_kwargs["battery_state"] = battery_state
-        await repo.update(device_id, **update_kwargs)
+        if update_kwargs:
+            await repo.update(device_id, **update_kwargs)
+        if metrics and is_low_power_mode is not None:
+            metrics = {**metrics, "is_low_power_mode": is_low_power_mode}
         if metrics:
             await repo.update_metrics(device_id, metrics)
 
@@ -61,8 +70,9 @@ class HeartbeatMonitor:
     async def _check_stale_devices(self) -> None:
         async with async_session() as session:
             repo = DeviceRepository(session)
-            devices = await repo.list_all(status="online")
-            for device in devices:
+            online_devices = await repo.list_all(status="online")
+            training_devices = await repo.list_all(status="training")
+            for device in online_devices + training_devices:
                 key = f"heartbeat:{device.id}"
                 last_heartbeat = await self.redis.get(key)
                 if last_heartbeat is None:

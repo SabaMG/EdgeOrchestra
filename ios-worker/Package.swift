@@ -31,6 +31,10 @@ let package = Package(
                 "EdgeOrchestraProtos",
                 .product(name: "GRPCCore", package: "grpc-swift-2"),
                 .product(name: "GRPCNIOTransportHTTP2", package: "grpc-swift-nio-transport"),
+            ],
+            resources: [
+                .copy("Resources/mnist_train.bin"),
+                .copy("Resources/cifar10_train.bin"),
             ]
         ),
         .executableTarget(

@@ -1,14 +1,15 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CreateTrainingJobRequest(BaseModel):
-    num_rounds: int = 5
-    min_devices: int = 1
-    learning_rate: float = 0.01
+    num_rounds: int = Field(5, ge=1, le=1000)
+    min_devices: int = Field(1, ge=1, le=100)
+    learning_rate: float = Field(0.01, gt=0.0, le=10.0)
     config: dict | None = None
+    model_id: uuid.UUID | None = None
 
 
 class TrainingJobResponse(BaseModel):
@@ -22,6 +23,9 @@ class TrainingJobResponse(BaseModel):
     learning_rate: float
     round_metrics: dict | None = None
     config: dict | None = None
+    model_id: uuid.UUID | None = None
+    model_name: str | None = None
+    architecture: str | None = None
     created_at: datetime
     updated_at: datetime
     completed_at: datetime | None = None

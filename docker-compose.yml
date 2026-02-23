@@ -41,9 +41,15 @@ services:
       EO_GRPC_HOST: 0.0.0.0
       EO_MDNS_ENABLED: "false"
       EO_LOG_LEVEL: INFO
+      EO_TLS_ENABLED: "${EO_TLS_ENABLED:-false}"
+      EO_API_KEY: "${EO_API_KEY:-}"
+      EO_TLS_CA_CERT: /app/certs/ca.crt
+      EO_TLS_SERVER_CERT: /app/certs/server.crt
+      EO_TLS_SERVER_KEY: /app/certs/server.key
     volumes:
       - ./orchestrator/src:/app/orchestrator/src
       - model-storage:/app/models
+      - ./certs:/app/certs:ro
     depends_on:
       postgres:
         condition: service_healthy

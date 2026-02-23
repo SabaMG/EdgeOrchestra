@@ -114,6 +114,8 @@ public struct Edgeorchestra_V1_HeartbeatResponse: Sendable {
 
   public var parameters: Dictionary<String,String> = [:]
 
+  public var metadata: Dictionary<String,String> = [:]
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -173,7 +175,7 @@ extension Edgeorchestra_V1_HeartbeatRequest: SwiftProtobuf.Message, SwiftProtobu
 
 extension Edgeorchestra_V1_HeartbeatResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".HeartbeatResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}command\0\u{3}ack_sequence\0\u{1}parameters\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}command\0\u{3}ack_sequence\0\u{1}parameters\0\u{1}metadata\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -184,6 +186,7 @@ extension Edgeorchestra_V1_HeartbeatResponse: SwiftProtobuf.Message, SwiftProtob
       case 1: try { try decoder.decodeSingularEnumField(value: &self.command) }()
       case 2: try { try decoder.decodeSingularUInt64Field(value: &self.ackSequence) }()
       case 3: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.self, value: &self.parameters) }()
+      case 4: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.self, value: &self.metadata) }()
       default: break
       }
     }
@@ -199,6 +202,9 @@ extension Edgeorchestra_V1_HeartbeatResponse: SwiftProtobuf.Message, SwiftProtob
     if !self.parameters.isEmpty {
       try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.self, value: self.parameters, fieldNumber: 3)
     }
+    if !self.metadata.isEmpty {
+      try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.self, value: self.metadata, fieldNumber: 4)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -206,6 +212,7 @@ extension Edgeorchestra_V1_HeartbeatResponse: SwiftProtobuf.Message, SwiftProtob
     if lhs.command != rhs.command {return false}
     if lhs.ackSequence != rhs.ackSequence {return false}
     if lhs.parameters != rhs.parameters {return false}
+    if lhs.metadata != rhs.metadata {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

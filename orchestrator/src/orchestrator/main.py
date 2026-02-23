@@ -57,7 +57,7 @@ async def main() -> None:
     from orchestrator.grpc_server.server import create_grpc_server
 
     device_service = DeviceRegistryServicer()
-    heartbeat_service = HeartbeatServiceServicer(heartbeat_monitor)
+    heartbeat_service = HeartbeatServiceServicer(heartbeat_monitor, redis)
     model_service = ModelServiceServicer(redis)
 
     # Training coordinator

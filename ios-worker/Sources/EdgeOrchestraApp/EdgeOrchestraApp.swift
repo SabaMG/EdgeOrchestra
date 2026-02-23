@@ -11,6 +11,9 @@ struct EdgeOrchestraApp: App {
         WindowGroup {
             ContentView(state: state)
                 .onAppear {
+                    #if os(iOS)
+                    UIApplication.shared.isIdleTimerDisabled = true
+                    #endif
                     let eng = WorkerEngine(state: state)
                     engine = eng
                     engineTask = Task {

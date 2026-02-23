@@ -21,16 +21,30 @@ public final class WorkerState {
     public var deviceId: String?
     public var deviceName: String = ""
 
+    /// Set to "host:port" to bypass Bonjour discovery (e.g. "172.20.10.2:50051")
+    public var manualAddress: String?
+
+    /// API key for authenticating with the orchestrator
+    public var apiKey: String?
+    /// Whether TLS is enabled for gRPC connections
+    public var tlsEnabled: Bool = false
+    /// TLS certificate bundle loaded from the app bundle
+    public var certBundle: TLSClientConfig?
+
     public var cpuUsage: Float = 0
     public var memoryUsage: Float = 0
     public var thermalPressure: Float = 0
     public var batteryLevel: Float = 1.0
     public var heartbeatSequence: UInt64 = 0
-    public var heartbeatInterval: TimeInterval = 5.0
+    public var heartbeatInterval: TimeInterval = 1.0
 
     public var trainingStatus: TrainingStatus = .idle
     public var currentRound: String?
     public var trainingHistory: [TrainingRoundResult] = []
+    public var trainingJobs: [TrainingJob] = []
+    public var activeJobId: String?
+    public var serverAccuracy: Float?
+    public var serverLoss: Float?
 
     public var logEntries: [LogEntry] = []
 

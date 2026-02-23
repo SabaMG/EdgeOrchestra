@@ -25,15 +25,24 @@ class Settings(BaseSettings):
     mdns_service_name: str = "EdgeOrchestra"
 
     # Heartbeat
-    heartbeat_interval_seconds: int = 5
-    heartbeat_timeout_multiplier: int = 3
+    heartbeat_interval_seconds: int = 1
+    heartbeat_timeout_multiplier: int = 5
 
     # Training
-    training_round_timeout_seconds: int = 60
+    training_round_timeout_seconds: int = 180
+
+    # Security - TLS
+    tls_enabled: bool = False
+    tls_ca_cert: str = "certs/ca.crt"
+    tls_server_cert: str = "certs/server.crt"
+    tls_server_key: str = "certs/server.key"
+
+    # Security - API Key
+    api_key: str = ""
 
     # Logging
     log_level: str = "INFO"
-    log_format: str = "json"
+    log_format: str = "console"
 
 
 settings = Settings()

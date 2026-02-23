@@ -2,9 +2,10 @@ import httpx
 
 
 class APIClient:
-    def __init__(self, base_url: str = "http://localhost:8000") -> None:
+    def __init__(self, base_url: str = "http://localhost:8000", api_key: str | None = None) -> None:
         self.base_url = base_url
-        self.client = httpx.Client(base_url=base_url, timeout=10.0)
+        headers = {"X-API-Key": api_key} if api_key else {}
+        self.client = httpx.Client(base_url=base_url, timeout=10.0, headers=headers)
 
     def health(self) -> dict:
         resp = self.client.get("/health")

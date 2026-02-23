@@ -1,38 +1,98 @@
 {% if devices %}
-<figure>
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Model</th>
-            <th>Chip</th>
-            <th>Status</th>
-            <th>Battery</th>
-            <th>Last Seen</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for d in devices %}
-        <tr>
-            <td>{{ d.name }}</td>
-            <td>{{ d.device_model }}</td>
-            <td>{{ d.chip or '-' }}</td>
-            <td><span class="badge badge-{{ d.status }}">{{ d.status }}</span></td>
-            <td>
-                {% if d.battery_level is not none %}
-                <progress value="{{ (d.battery_level * 100)|int }}" max="100"></progress>
-                <small>{{ (d.battery_level * 100)|int }}%</small>
+<div class="device-grid">
+    {% for d in devices %}
+    {% set m = d.metrics or {} %}
+    <article class="device-card">
+        <header class="device-card-header">
+            <div>
+                <strong>{{ d.name }}</strong>
+                <span class="badge badge-{{ d.status }}">{{ d.status }}</span>
+            </div>
+            <small class="muted">{{ d.device_model }} &middot; {{ d.chip or '?' }} &middot; {{ time_ago(d.last_seen_at) }}</small>
+        </header>
+
+        <div class="device-metrics-grid">
+            {# --- Battery --- #}
+            <div class="metric-block">
+                <div class="metric-label">Battery</div>
+                {% if d.battery_level is not none and d.battery_state %}
+                {% set batt_pct = (d.battery_level * 100)|int %}
+                <div class="metric-bar-wrap">
+                    <div class="metric-bar {% if batt_pct < 20 %}bar-danger{% elif batt_pct < 50 %}bar-warning{% else %}bar-ok{% endif %}"
+                         style="width: {{ batt_pct }}%"></div>
+                </div>
+                <div class="metric-value">{{ batt_pct }}% <span class="badge badge-battery-{{ d.battery_state }}">{{ d.battery_state }}</span></div>
+                {% elif d.battery_level is not none %}
+                <div class="metric-value"><span class="badge badge-battery-ac">AC Power</span></div>
                 {% else %}
-                -
+                <div class="metric-value muted">-</div>
                 {% endif %}
-            </td>
-            <td><small>{{ time_ago(d.last_seen_at) }}</small></td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-</figure>
-<p><small>{{ devices|length }} device{{ 's' if devices|length != 1 else '' }} connected</small></p>
+            </div>
+
+            {# --- CPU --- #}
+            <div class="metric-block">
+                <div class="metric-label">CPU{% if d.cpu_cores %} <small class="muted">({{ d.cpu_cores }} cores)</small>{% endif %}</div>
+                {% if m.cpu_usage is defined and m.cpu_usage is not none %}
+                {% set cpu_pct = (m.cpu_usage * 100)|int %}
+                <div class="metric-bar-wrap">
+                    <div class="metric-bar {% if cpu_pct > 80 %}bar-danger{% elif cpu_pct > 50 %}bar-warning{% else %}bar-ok{% endif %}"
+                         style="width: {{ cpu_pct }}%"></div>
+                </div>
+                <div class="metric-value">{{ cpu_pct }}%</div>
+                {% else %}
+                <div class="metric-value muted">-</div>
+                {% endif %}
+            </div>
+
+            {# --- Memory --- #}
+            <div class="metric-block">
+                <div class="metric-label">Memory{% if d.memory_bytes %} <small class="muted">({{ (d.memory_bytes / 1073741824)|round(0)|int }} GB)</small>{% endif %}</div>
+                {% if m.memory_usage is defined and m.memory_usage is not none %}
+                {% set mem_pct = (m.memory_usage * 100)|int %}
+                <div class="metric-bar-wrap">
+                    <div class="metric-bar {% if mem_pct > 80 %}bar-danger{% elif mem_pct > 50 %}bar-warning{% else %}bar-ok{% endif %}"
+                         style="width: {{ mem_pct }}%"></div>
+                </div>
+                <div class="metric-value">
+                    {{ mem_pct }}%
+                    {% if d.memory_bytes %}
+                    <small class="muted">{{ ((m.memory_usage * d.memory_bytes) / 1073741824)|round(1) }} / {{ (d.memory_bytes / 1073741824)|round(0)|int }} GB</small>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="metric-value muted">-</div>
+                {% endif %}
+            </div>
+
+            {# --- Thermal --- #}
+            <div class="metric-block">
+                <div class="metric-label">Thermal</div>
+                {% if m.thermal_pressure is defined and m.thermal_pressure is not none %}
+                {% set therm_pct = (m.thermal_pressure * 100)|int %}
+                <div class="metric-value">
+                    <span class="badge {% if therm_pct > 70 %}badge-thermal-critical{% elif therm_pct > 40 %}badge-thermal-warning{% else %}badge-thermal-nominal{% endif %}">
+                        {% if therm_pct <= 15 %}Nominal{% elif therm_pct <= 45 %}Fair{% elif therm_pct <= 75 %}Serious{% else %}Critical{% endif %}
+                    </span>
+                </div>
+                {% else %}
+                <div class="metric-value muted">-</div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if d.gpu_cores or d.neural_engine_cores %}
+        <footer class="device-card-footer">
+            <small class="muted">
+                {% if d.gpu_cores %}{{ d.gpu_cores }} GPU cores{% endif %}
+                {% if d.gpu_cores and d.neural_engine_cores %} &middot; {% endif %}
+                {% if d.neural_engine_cores %}{{ d.neural_engine_cores }} Neural Engine cores{% endif %}
+            </small>
+        </footer>
+        {% endif %}
+    </article>
+    {% endfor %}
+</div>
+<p><small class="muted">{{ devices|length }} device{{ 's' if devices|length != 1 else '' }} connected</small></p>
 {% else %}
-<p><small>No devices connected.</small></p>
+<p><small class="muted">No devices connected.</small></p>
 {% endif %}

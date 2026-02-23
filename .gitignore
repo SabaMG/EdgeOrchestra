@@ -32,6 +32,9 @@ ENV/
 # Docker
 docker-compose.override.yml
 
+# TLS certificates
+certs/
+
 # Protobuf generated
 orchestrator/src/orchestrator/generated/*_pb2.py
 orchestrator/src/orchestrator/generated/*_pb2_grpc.py

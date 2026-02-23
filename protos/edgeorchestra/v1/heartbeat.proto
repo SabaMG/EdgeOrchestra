@@ -29,4 +29,5 @@ message HeartbeatResponse {
   HeartbeatCommand command = 1;
   uint64 ack_sequence = 2;
   map<string, string> parameters = 3;
+  map<string, string> metadata = 4;
 }

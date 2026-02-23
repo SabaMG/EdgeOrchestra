@@ -4,7 +4,48 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from orchestrator.db.models import Device, TrainingJob
+from orchestrator.db.models import Device, Model, TrainingJob
+
+
+class ModelRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def create(self, **kwargs: object) -> Model:
+        model = Model(**kwargs)
+        self.session.add(model)
+        await self.session.commit()
+        await self.session.refresh(model)
+        return model
+
+    async def get(self, model_id: uuid.UUID) -> Model | None:
+        return await self.session.get(Model, model_id)
+
+    async def list_all(self, architecture: str | None = None) -> list[Model]:
+        stmt = select(Model)
+        if architecture:
+            stmt = stmt.where(Model.architecture == architecture)
+        stmt = stmt.order_by(Model.created_at.desc())
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def update(self, model_id: uuid.UUID, **kwargs: object) -> Model | None:
+        model = await self.get(model_id)
+        if not model:
+            return None
+        for key, value in kwargs.items():
+            setattr(model, key, value)
+        await self.session.commit()
+        await self.session.refresh(model)
+        return model
+
+    async def delete(self, model_id: uuid.UUID) -> bool:
+        model = await self.get(model_id)
+        if not model:
+            return False
+        await self.session.delete(model)
+        await self.session.commit()
+        return True
 
 
 class DeviceRepository:
@@ -93,3 +134,11 @@ class TrainingJobRepository:
         await self.session.commit()
         await self.session.refresh(job)
         return job
+
+    async def delete(self, job_id: uuid.UUID) -> bool:
+        job = await self.get(job_id)
+        if not job:
+            return False
+        await self.session.delete(job)
+        await self.session.commit()
+        return True

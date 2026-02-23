@@ -1,4 +1,4 @@
-.PHONY: proto-gen dev-up dev-down lint test migrate
+.PHONY: proto-gen dev-up dev-down lint test migrate validate
 
 PROTO_DIR := protos
 OUT_DIR := orchestrator/src/orchestrator/generated
@@ -50,3 +50,8 @@ migrate-new:
 
 run:
 	cd orchestrator && uv run python -m orchestrator.main
+
+validate:
+	docker compose up -d postgres redis
+	@sleep 3
+	cd orchestrator && EO_LOG_FORMAT=console uv run python -m orchestrator.main

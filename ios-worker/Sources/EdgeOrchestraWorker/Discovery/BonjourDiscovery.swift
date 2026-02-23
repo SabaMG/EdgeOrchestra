@@ -6,6 +6,7 @@ public struct DiscoveredOrchestrator: Sendable {
     public let grpcPort: Int
     public let apiPort: Int
     public let version: String
+    public let tlsEnabled: Bool
 }
 
 public final class BonjourDiscovery: Sendable {
@@ -17,85 +18,87 @@ public final class BonjourDiscovery: Sendable {
 
     public func discover(timeout: TimeInterval = 10) async -> DiscoveredOrchestrator? {
         await withCheckedContinuation { continuation in
+            let serialQueue = DispatchQueue(label: "bonjour.discover")
             let browser = NWBrowser(for: .bonjour(type: serviceType, domain: domain), using: .tcp)
             nonisolated(unsafe) var resumed = false
 
+            let resumeOnce: @Sendable (DiscoveredOrchestrator?) -> Void = { value in
+                serialQueue.async {
+                    guard !resumed else { return }
+                    resumed = true
+                    browser.cancel()
+                    continuation.resume(returning: value)
+                }
+            }
+
             browser.stateUpdateHandler = { state in
                 if case .failed = state {
-                    if !resumed {
-                        resumed = true
-                        continuation.resume(returning: nil)
-                    }
-                    browser.cancel()
+                    resumeOnce(nil)
                 }
             }
 
             browser.browseResultsChangedHandler = { results, _ in
-                guard !resumed else { return }
-                for result in results {
-                    if case let .service(name, type, domain, _) = result.endpoint {
-                        // Resolve the service
-                        let params = NWParameters.tcp
-                        let connection = NWConnection(to: result.endpoint, using: params)
-                        connection.stateUpdateHandler = { connState in
-                            guard !resumed else { return }
-                            if case .ready = connState {
-                                if let endpoint = connection.currentPath?.remoteEndpoint,
-                                   case let .hostPort(host, port) = endpoint {
-                                    var hostStr: String
-                                    switch host {
-                                    case .ipv4(let addr):
-                                        hostStr = "\(addr)"
-                                    case .ipv6(let addr):
-                                        hostStr = "\(addr)"
-                                    case .name(let name, _):
-                                        hostStr = name
-                                    @unknown default:
-                                        hostStr = "localhost"
-                                    }
-                                    // Strip interface scope suffix (e.g. %en8)
-                                    if let pctIdx = hostStr.firstIndex(of: "%") {
-                                        hostStr = String(hostStr[hostStr.startIndex..<pctIdx])
-                                    }
+                serialQueue.async {
+                    guard !resumed else { return }
+                    for result in results {
+                        if case .service = result.endpoint {
+                            let params = NWParameters.tcp
+                            let connection = NWConnection(to: result.endpoint, using: params)
+                            connection.stateUpdateHandler = { connState in
+                                if case .ready = connState {
+                                    if let endpoint = connection.currentPath?.remoteEndpoint,
+                                       case let .hostPort(host, port) = endpoint {
+                                        var hostStr: String
+                                        switch host {
+                                        case .ipv4(let addr):
+                                            hostStr = "\(addr)"
+                                        case .ipv6(let addr):
+                                            hostStr = "\(addr)"
+                                        case .name(let name, _):
+                                            hostStr = name
+                                        @unknown default:
+                                            hostStr = "localhost"
+                                        }
+                                        if let pctIdx = hostStr.firstIndex(of: "%") {
+                                            hostStr = String(hostStr[hostStr.startIndex..<pctIdx])
+                                        }
 
-                                    // Extract TXT record properties from metadata
-                                    var grpcPort = Int(port.rawValue)
-                                    var apiPort = 8000
-                                    var version = "unknown"
+                                        var grpcPort = Int(port.rawValue)
+                                        var apiPort = 8000
+                                        var version = "unknown"
+                                        var tls = false
 
-                                    if case let .bonjour(txtRecord) = result.metadata {
-                                        let dict = Self.parseTXTRecord(txtRecord)
-                                        if let gp = dict["grpc_port"] { grpcPort = Int(gp) ?? grpcPort }
-                                        if let ap = dict["api_port"] { apiPort = Int(ap) ?? apiPort }
-                                        if let v = dict["version"] { version = v }
+                                        if case let .bonjour(txtRecord) = result.metadata {
+                                            let dict = Self.parseTXTRecord(txtRecord)
+                                            if let gp = dict["grpc_port"] { grpcPort = Int(gp) ?? grpcPort }
+                                            if let ap = dict["api_port"] { apiPort = Int(ap) ?? apiPort }
+                                            if let v = dict["version"] { version = v }
+                                            tls = dict["tls"] == "1"
+                                        }
+
+                                        connection.cancel()
+                                        resumeOnce(DiscoveredOrchestrator(
+                                            host: hostStr,
+                                            grpcPort: grpcPort,
+                                            apiPort: apiPort,
+                                            version: version,
+                                            tlsEnabled: tls
+                                        ))
                                     }
-
-                                    resumed = true
-                                    connection.cancel()
-                                    continuation.resume(returning: DiscoveredOrchestrator(
-                                        host: hostStr,
-                                        grpcPort: grpcPort,
-                                        apiPort: apiPort,
-                                        version: version
-                                    ))
                                 }
                             }
+                            connection.start(queue: serialQueue)
+                            return
                         }
-                        connection.start(queue: .global())
-                        return
                     }
                 }
             }
 
-            browser.start(queue: .global())
+            browser.start(queue: serialQueue)
 
             // Timeout
-            DispatchQueue.global().asyncAfter(deadline: .now() + timeout) {
-                if !resumed {
-                    resumed = true
-                    browser.cancel()
-                    continuation.resume(returning: nil)
-                }
+            serialQueue.asyncAfter(deadline: .now() + timeout) {
+                resumeOnce(nil)
             }
         }
     }

@@ -11,11 +11,11 @@
     </thead>
     <tbody>
         {% for r in rounds %}
-        <tr>
+        <tr{% if r.skipped is defined and r.skipped %} class="row-skipped"{% endif %}>
             <td>{{ r.round }}</td>
             <td>{{ r.participants }}</td>
-            <td>{{ "%.4f"|format(r.avg_loss) }}</td>
-            <td>{{ "%.1f"|format(r.avg_accuracy * 100) }}%</td>
+            <td>{% if r.avg_loss is not none %}{{ "%.4f"|format(r.avg_loss) }}{% else %}<span class="muted">skipped</span>{% endif %}</td>
+            <td>{% if r.avg_accuracy is not none %}{{ "%.1f"|format(r.avg_accuracy * 100) }}%{% else %}<span class="muted">skipped</span>{% endif %}</td>
         </tr>
         {% endfor %}
     </tbody>

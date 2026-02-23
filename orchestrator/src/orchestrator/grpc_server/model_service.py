@@ -5,6 +5,8 @@ import grpc
 import structlog
 from redis.asyncio import Redis
 
+from orchestrator.observability.metrics import GRADIENT_SUBMISSIONS_TOTAL
+
 logger = structlog.get_logger()
 
 CHUNK_SIZE = 32 * 1024  # 32KB
@@ -93,14 +95,41 @@ class ModelServiceServicer:
         model_id = request.model_id
         training_round = request.training_round
 
+        # Validate inputs
+        if not device_id or not model_id or not training_round:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("Missing device_id, model_id, or training_round")
+            return model_pb2.SubmitGradientsResponse(accepted=False)
+
+        if not request.gradients:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("Empty gradients payload")
+            return model_pb2.SubmitGradientsResponse(accepted=False)
+
+        if request.num_samples <= 0:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("num_samples must be > 0")
+            return model_pb2.SubmitGradientsResponse(accepted=False)
+
+        # Validate gradient binary format (must have at least a layer count header)
+        if len(request.gradients) < 4:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("Gradient data too small to be valid")
+            return model_pb2.SubmitGradientsResponse(accepted=False)
+
+        # Decompress gradients (float16+lz4 → float32, or passthrough for legacy)
+        from orchestrator.services.gradient_codec import decompress_gradients
+        gradients_bytes = decompress_gradients(request.gradients)
+
         # Store gradient entry as base64-encoded JSON
         entry = json.dumps({
             "device_id": device_id,
-            "gradients": base64.b64encode(request.gradients).decode(),
+            "gradients": base64.b64encode(gradients_bytes).decode(),
             "num_samples": request.num_samples,
             "metrics": dict(request.metrics),
         })
         await self.redis.rpush(f"gradients:{model_id}:{training_round}", entry)
+        GRADIENT_SUBMISSIONS_TOTAL.inc()
 
         logger.info(
             "gradients_received",

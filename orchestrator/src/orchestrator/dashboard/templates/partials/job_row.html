@@ -1,24 +1,20 @@
 <tr id="job-{{ job.id }}">
     <td><span class="badge badge-{{ job.status }}">{{ job.status }}</span></td>
+    <td><small>{{ job.model_name or '-' }}</small></td>
     <td>
         <progress value="{{ job.current_round }}" max="{{ job.num_rounds }}"></progress>
         <small>{{ job.current_round }}/{{ job.num_rounds }}</small>
     </td>
     <td>{{ job.learning_rate }}</td>
     <td><small>{{ time_ago(job.created_at) }}</small></td>
-    <td>
+    <td class="actions-cell">
         {% if job.status in ('pending', 'running') %}
-        <button class="outline small-btn"
-                hx-post="/dashboard/actions/jobs/{{ job.id }}/stop"
-                hx-target="#job-{{ job.id }}"
-                hx-swap="outerHTML">Stop</button>
+        <span class="btn-link" hx-post="/dashboard/actions/jobs/{{ job.id }}/stop"
+              hx-target="#job-{{ job.id }}" hx-swap="outerHTML">Stop</span>
         {% endif %}
-        <button class="outline small-btn"
-                hx-get="/dashboard/partials/job/{{ job.id }}"
-                hx-target="#job-detail-container"
-                hx-swap="innerHTML">Details</button>
+        <span class="btn-link" onclick="loadJobDetail('{{ job.id }}')">Details</span>
         {% if job.status == 'completed' %}
-        <a href="/api/v1/training/jobs/{{ job.id }}/model" class="outline small-btn" role="button">Model</a>
+        <a href="/api/v1/training/jobs/{{ job.id }}/model" class="btn-link" download>Model</a>
         {% endif %}
     </td>
 </tr>

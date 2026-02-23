@@ -1,22 +1,49 @@
 {% if jobs %}
-<figure>
-<table>
-    <thead>
-        <tr>
-            <th>Status</th>
-            <th>Progress</th>
-            <th>LR</th>
-            <th>Created</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for job in jobs %}
-        {% include "partials/job_row.html" %}
-        {% endfor %}
-    </tbody>
-</table>
-</figure>
+<div class="jobs-grid">
+    {% for job in jobs %}
+    <article class="job-card" onclick="loadJobDetail('{{ job.id }}')">
+        <header class="job-card-header">
+            <div>
+                <span class="badge badge-{{ job.status }}">{{ job.status }}</span>
+                <small class="muted">{{ time_ago(job.created_at) }}</small>
+            </div>
+            {% if job.status in ('pending', 'running') %}
+            <span class="btn-link btn-stop" onclick="event.stopPropagation()"
+                  hx-post="/dashboard/actions/jobs/{{ job.id }}/stop"
+                  hx-target="#jobs-container"
+                  hx-swap="innerHTML">Stop</span>
+            {% endif %}
+        </header>
+
+        <div class="job-card-body">
+            <strong>{{ job.model_name or 'Unnamed model' }}</strong>
+            {% if job.architecture %}
+            <small class="muted">{{ job.architecture|upper }}</small>
+            {% endif %}
+        </div>
+
+        <div class="job-card-progress">
+            <div class="job-progress-bar-wrap">
+                <div class="job-progress-bar {% if job.status == 'completed' %}bar-ok{% elif job.status == 'failed' %}bar-danger{% elif job.status == 'stopped' %}bar-warning{% else %}bar-running{% endif %}"
+                     style="width: {{ (job.current_round / job.num_rounds * 100)|int if job.num_rounds else 0 }}%"></div>
+            </div>
+            <small>{{ job.current_round }}/{{ job.num_rounds }} rounds &middot; LR {{ job.learning_rate }}</small>
+        </div>
+
+        <footer class="job-card-footer">
+            <small class="muted">
+                {% if job.status == 'completed' and job.completed_at %}Completed {{ time_ago(job.completed_at) }}{% elif job.status == 'running' %}Training in progress...{% elif job.status == 'pending' %}Waiting to start{% elif job.status == 'failed' %}Training failed{% elif job.status == 'stopped' %}Stopped{% endif %}
+            </small>
+            {% if job.status == 'completed' %}
+            <a href="/api/v1/training/jobs/{{ job.id }}/model" class="btn-link btn-download" onclick="event.stopPropagation()" download>Download Model</a>
+            {% endif %}
+        </footer>
+    </article>
+    {% endfor %}
+</div>
+{% if total_jobs is defined and total_jobs > jobs|length %}
+<p><small class="muted">Showing {{ jobs|length }} of {{ total_jobs }} jobs</small></p>
+{% endif %}
 {% else %}
-<p><small>No training jobs.</small></p>
+<p><small class="muted">No training jobs yet. Click <strong>+ New Job</strong> to start training.</small></p>
 {% endif %}
